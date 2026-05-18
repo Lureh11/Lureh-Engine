@@ -1,0 +1,11 @@
+services:
+  lureh:
+    build: .
+    ports:
+      - "3001:3001"
+    volumes:
+      - lureh-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  lureh-data:

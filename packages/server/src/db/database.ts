@@ -19,7 +19,8 @@ let db: Database.Database;
 
 export function getDb(): Database.Database {
   if (!db) {
-    db = new Database(join(__dirname, '..', '..', 'lureh.db'));
+    const dbPath = process.env.LUREH_DB_PATH ?? join(__dirname, '..', '..', 'lureh.db');
+    db = new Database(dbPath);
     db.pragma('journal_mode = WAL');
     db.pragma('foreign_keys = ON');
 

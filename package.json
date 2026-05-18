@@ -1,0 +1,17 @@
+{
+  "name": "lureh-simulation-motor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Motor de simulación financiera temporal",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=@lureh/web",
+    "dev:server": "npm run dev --workspace=@lureh/server",
+    "build": "npm run build --workspace=@lureh/engine && npm run build --workspace=@lureh/server && npm run build --workspace=@lureh/web",
+    "build:engine": "npm run build --workspace=@lureh/engine",
+    "build:server": "npm run build --workspace=@lureh/server",
+    "build:web": "npm run build --workspace=@lureh/web"
+  }
+}

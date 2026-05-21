@@ -40,6 +40,26 @@ export function simulate(input: SimulationInput): SimulationResult {
     }
   }
 
+  // ── Pre-apply past events ─────────────────────────────────
+  // Events (especially one-time) that already happened before the
+  // simulation start date still affected the user's finances.
+  // We replay them against account balances so the projection
+  // starts from the real current state.
+  const pastEvents = collectPastEvents(allEvents, config.startDate, input.accounts);
+  for (const pe of pastEvents) {
+    const targetId = pe.accountId ?? getDefaultAccountId(input.accounts);
+    switch (pe.type) {
+      case 'income':
+      case 'growth':
+        addToAccount(accountBalances, targetId, pe.amount);
+        break;
+      case 'expense':
+      case 'obligation':
+        addToAccount(accountBalances, targetId, -pe.amount);
+        break;
+    }
+  }
+
   const goalAmounts = new Map<string, number>();
   for (const goal of input.goals) {
     goalAmounts.set(goal.id, goal.currentAmount);
@@ -323,6 +343,44 @@ function filterActiveEvents(input: SimulationInput): FinancialEvent[] {
     if (e.scenarioId === null) return true;
     return activeScenarios.has(e.scenarioId);
   });
+}
+
+/**
+ * Collect events that already occurred before the simulation start date.
+ * These need to be applied to account balances so the projection
+ * reflects their impact. Uses expandRecurrences to catch recurring
+ * events that had occurrences in the past window.
+ */
+function collectPastEvents(
+  events: FinancialEvent[],
+  simulationStart: string,
+  accounts: Account[],
+): { type: string; amount: number; accountId?: string }[] {
+  const results: { type: string; amount: number; accountId?: string }[] = [];
+
+  // Find the earliest event date to know how far back to look
+  let earliest = simulationStart;
+  for (const e of events) {
+    if (e.startDate < earliest) earliest = e.startDate;
+  }
+
+  if (earliest >= simulationStart) return results; // nothing in the past
+
+  // Expand all occurrences from the earliest event to just before today
+  const pastOccurrences = expandRecurrences(events, earliest, simulationStart);
+
+  // Only include occurrences strictly before the simulation start
+  for (const occ of pastOccurrences) {
+    if (occ.date < simulationStart) {
+      results.push({
+        type: occ.event.type,
+        amount: occ.event.amount,
+        accountId: occ.event.accountId,
+      });
+    }
+  }
+
+  return results;
 }
 
 function generatePeriods(config: SimulationConfig): string[] {

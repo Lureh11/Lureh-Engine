@@ -249,6 +249,7 @@ export interface AppliedEvent {
   name: string;
   type: EventType;
   amount: number;
+  date: string;
   accountId?: string;
 }
 

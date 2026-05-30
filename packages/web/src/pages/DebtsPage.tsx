@@ -152,7 +152,7 @@ function CreditCardCard({ debt, isExpanded, onToggle, onUpdate, onDelete, onPurc
     onPurchaseChange();
   };
 
-  const handleAddPurchase = async (data: { description: string; amount: number; installments: number; date: string }) => {
+  const handleAddPurchase = async (data: { description: string; amount: number; installments: number; date: string; interestRate?: number }) => {
     await api.debts.addPurchase(debt.id, data);
     const p = await api.debts.purchases(debt.id);
     setPurchases(p);
@@ -216,7 +216,7 @@ function CreditCardCard({ debt, isExpanded, onToggle, onUpdate, onDelete, onPurc
           </div>
 
           {showPurchaseForm && (
-            <PurchaseForm onAdd={handleAddPurchase} onCancel={() => setShowPurchaseForm(false)} />
+            <PurchaseForm defaultRate={debt.annualInterestRate} onAdd={handleAddPurchase} onCancel={() => setShowPurchaseForm(false)} />
           )}
 
           {purchases.length === 0 && !showPurchaseForm && (
@@ -268,41 +268,53 @@ function CreditCardCard({ debt, isExpanded, onToggle, onUpdate, onDelete, onPurc
   );
 }
 
-function PurchaseForm({ onAdd, onCancel }: {
-  onAdd: (data: { description: string; amount: number; installments: number; date: string }) => void;
+function PurchaseForm({ defaultRate, onAdd, onCancel }: {
+  defaultRate: number;
+  onAdd: (data: { description: string; amount: number; installments: number; date: string; interestRate?: number }) => void;
   onCancel: () => void;
 }) {
   const [desc, setDesc] = useState('');
   const [amount, setAmount] = useState('');
   const [installments, setInstallments] = useState('1');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [rate, setRate] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const customRate = parseFloat(rate);
     onAdd({
       description: desc || 'Compra',
       amount: parseFloat(amount) || 0,
       installments: parseInt(installments) || 1,
       date,
+      interestRate: customRate > 0 ? customRate / 100 : undefined,
     });
   };
 
   const smallInput = 'rounded border border-slate-300 px-2 py-1.5 text-xs focus:border-lureh-500 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder-slate-500';
 
   return (
-    <form onSubmit={handleSubmit} className="mb-3 flex items-end gap-2 rounded-lg bg-purple-50 p-2 dark:bg-purple-950/50">
-      <input type="text" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Descripcion" autoFocus
-        className={`flex-1 ${smallInput}`} />
-      <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Monto"
-        className={`w-28 ${smallInput}`} />
-      <input type="number" value={installments} onChange={(e) => setInstallments(e.target.value)} placeholder="Cuotas" min="1"
-        className={`w-16 ${smallInput}`} title="Numero de cuotas" />
-      <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-        className={`w-32 ${smallInput}`} />
-      <button type="submit" className="rounded bg-purple-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-purple-700">
-        Agregar
-      </button>
-      <button type="button" onClick={onCancel} className="text-xs text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300">✕</button>
+    <form onSubmit={handleSubmit} className="mb-3 rounded-lg bg-purple-50 p-2 dark:bg-purple-950/50">
+      <div className="flex items-end gap-2">
+        <input type="text" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Descripcion" autoFocus
+          className={`flex-1 ${smallInput}`} />
+        <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Monto"
+          className={`w-28 ${smallInput}`} />
+        <input type="number" value={installments} onChange={(e) => setInstallments(e.target.value)} placeholder="Cuotas" min="1"
+          className={`w-16 ${smallInput}`} title="Numero de cuotas" />
+        <input type="number" value={rate} onChange={(e) => setRate(e.target.value)} step="0.1"
+          placeholder={`${(defaultRate * 100).toFixed(1)}%`}
+          className={`w-20 ${smallInput}`} title="Tasa anual % (vacio = tasa de la tarjeta)" />
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
+          className={`w-32 ${smallInput}`} />
+        <button type="submit" className="rounded bg-purple-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-purple-700">
+          Agregar
+        </button>
+        <button type="button" onClick={onCancel} className="text-xs text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300">✕</button>
+      </div>
+      <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500 italic pl-1">
+        Tasa: si se deja vacio usa la tasa general de la tarjeta ({(defaultRate * 100).toFixed(1)}%)
+      </p>
     </form>
   );
 }

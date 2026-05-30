@@ -185,6 +185,28 @@ export function createGoal(goal: FinancialGoal): FinancialGoal {
   return goal;
 }
 
+export function getGoalById(id: string): FinancialGoal | undefined {
+  const row = getDb().prepare('SELECT * FROM goals WHERE id = ?').get(id) as any;
+  return row ? rowToGoal(row) : undefined;
+}
+
+export function updateGoal(id: string, data: Partial<FinancialGoal>): FinancialGoal | undefined {
+  const existing = getGoalById(id);
+  if (!existing) return undefined;
+
+  const updated = { ...existing, ...data, id, updatedAt: new Date().toISOString() };
+  getDb().prepare(`
+    UPDATE goals SET name=?, target_amount=?, current_amount=?, target_date=?,
+      priority=?, linked_account_id=?, monthly_contribution=?, updated_at=?
+    WHERE id=?
+  `).run(
+    updated.name, updated.targetAmount, updated.currentAmount,
+    updated.targetDate, updated.priority, updated.linkedAccountId ?? null,
+    updated.monthlyContribution, updated.updatedAt, id,
+  );
+  return updated;
+}
+
 export function deleteGoal(id: string): boolean {
   const result = getDb().prepare('DELETE FROM goals WHERE id = ?').run(id);
   return result.changes > 0;

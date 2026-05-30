@@ -24,7 +24,7 @@ export function DashboardPage({ onNavigate }: DashboardProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasData, setHasData] = useState<boolean | null>(null);
-  const [horizon, setHorizon] = useState<number>(12);
+  const [horizon, setHorizon] = useState<number>(1);
 
   const runSimulation = useCallback(async () => {
     setLoading(true);
@@ -113,10 +113,10 @@ export function DashboardPage({ onNavigate }: DashboardProps) {
         <BalanceCards summary={result.summary} />
       </div>
 
-      <div className="mt-6 flex items-center gap-4">
+      <div className="mt-6 flex items-center gap-4 flex-wrap">
         <div className="flex items-center gap-2">
           <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Horizonte:</label>
-          {[3, 6, 12, 24, 36, 60].map((m) => (
+          {[1, 2, 3, 6, 12, 24, 36].map((m) => (
             <button
               key={m}
               onClick={() => setHorizon(m)}
@@ -132,23 +132,11 @@ export function DashboardPage({ onNavigate }: DashboardProps) {
         </div>
 
         {scenarios.length > 0 && (
-          <div className="flex items-center gap-2 ml-auto">
-            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Escenarios:</span>
-            {scenarios.map((sc) => (
-              <button
-                key={sc.id}
-                onClick={() => toggleScenario(sc.id)}
-                className={`rounded-full px-2.5 py-1 text-xs font-medium border transition ${
-                  activeScenarioIds.includes(sc.id)
-                    ? 'border-transparent text-white'
-                    : 'border-slate-200 text-slate-500 bg-white hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:bg-slate-800 dark:hover:bg-slate-700'
-                }`}
-                style={activeScenarioIds.includes(sc.id) ? { backgroundColor: sc.color } : {}}
-              >
-                {sc.name}
-              </button>
-            ))}
-          </div>
+          <ScenarioSelector
+            scenarios={scenarios}
+            activeIds={activeScenarioIds}
+            onToggle={toggleScenario}
+          />
         )}
       </div>
 
@@ -165,8 +153,88 @@ export function DashboardPage({ onNavigate }: DashboardProps) {
       </div>
 
       <div className="mt-6">
-        <MovementsLog timeline={result.timeline} />
+        <MovementsLog timeline={result.timeline} startingBalance={result.summary.currentTotalBalance} />
       </div>
+    </div>
+  );
+}
+
+const MAX_VISIBLE_SCENARIOS = 3;
+
+function ScenarioSelector({ scenarios, activeIds, onToggle }: {
+  scenarios: Scenario[];
+  activeIds: string[];
+  onToggle: (id: string) => void;
+}) {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  // Show last 3 created as buttons, rest go in dropdown
+  const visible = scenarios.slice(-MAX_VISIBLE_SCENARIOS);
+  const overflow = scenarios.slice(0, Math.max(0, scenarios.length - MAX_VISIBLE_SCENARIOS));
+  const activeOverflowCount = overflow.filter(sc => activeIds.includes(sc.id)).length;
+
+  return (
+    <div className="flex items-center gap-2 ml-auto">
+      <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Escenarios:</span>
+
+      {/* Quick-access buttons for latest scenarios */}
+      {visible.map((sc) => (
+        <button
+          key={sc.id}
+          onClick={() => onToggle(sc.id)}
+          className={`rounded-full px-2.5 py-1 text-xs font-medium border transition ${
+            activeIds.includes(sc.id)
+              ? 'border-transparent text-white'
+              : 'border-slate-200 text-slate-500 bg-white hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:bg-slate-800 dark:hover:bg-slate-700'
+          }`}
+          style={activeIds.includes(sc.id) ? { backgroundColor: sc.color } : {}}
+        >
+          {sc.name}
+        </button>
+      ))}
+
+      {/* Dropdown for overflow scenarios */}
+      {overflow.length > 0 && (
+        <div className="relative">
+          <button
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            className={`rounded-full px-2.5 py-1 text-xs font-medium border transition ${
+              activeOverflowCount > 0
+                ? 'border-lureh-300 bg-lureh-50 text-lureh-700 dark:border-lureh-700 dark:bg-lureh-950 dark:text-lureh-300'
+                : 'border-slate-200 text-slate-500 bg-white hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:bg-slate-800 dark:hover:bg-slate-700'
+            }`}
+          >
+            +{overflow.length} mas {activeOverflowCount > 0 && `(${activeOverflowCount})`} ▾
+          </button>
+
+          {dropdownOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setDropdownOpen(false)} />
+              <div className="absolute right-0 top-full mt-1 z-20 min-w-48 rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-800">
+                {overflow.map((sc) => (
+                  <button
+                    key={sc.id}
+                    onClick={() => onToggle(sc.id)}
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50 dark:hover:bg-slate-700"
+                  >
+                    <span
+                      className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border text-[10px] ${
+                        activeIds.includes(sc.id)
+                          ? 'border-transparent text-white'
+                          : 'border-slate-300 dark:border-slate-600'
+                      }`}
+                      style={activeIds.includes(sc.id) ? { backgroundColor: sc.color } : {}}
+                    >
+                      {activeIds.includes(sc.id) ? '✓' : ''}
+                    </span>
+                    <span className="text-slate-700 dark:text-slate-300">{sc.name}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

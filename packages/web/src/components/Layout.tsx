@@ -42,7 +42,7 @@ export function Layout({ currentPage, onNavigate, children }: Props) {
           ))}
         </nav>
         <div className="border-t border-slate-100 px-5 py-3 dark:border-slate-800">
-          <p className="text-[10px] text-slate-300 dark:text-slate-600">v0.1.0 MVP</p>
+          <p className="text-[10px] text-slate-300 dark:text-slate-600">v0.2.0 MVP</p>
         </div>
       </aside>
       <main className="ml-56 flex-1 bg-slate-50 px-8 py-6 dark:bg-slate-950">

@@ -57,6 +57,8 @@ export const api = {
     list: () => request<FinancialGoal[]>('/goals'),
     create: (data: Partial<FinancialGoal>) =>
       request<FinancialGoal>('/goals', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<FinancialGoal>) =>
+      request<FinancialGoal>(`/goals/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string) =>
       request<void>(`/goals/${id}`, { method: 'DELETE' }),
   },

@@ -40,13 +40,14 @@ export function simulate(input: SimulationInput): SimulationResult {
     }
   }
 
-  // ── Pre-apply past events ─────────────────────────────────
-  // Events (especially one-time) that already happened before the
-  // simulation start date still affected the user's finances.
-  // We replay them against account balances so the projection
-  // starts from the real current state.
-  const pastEvents = collectPastEvents(allEvents, config.startDate, input.accounts);
-  for (const pe of pastEvents) {
+  // ── Pre-apply past SCENARIO events ─────────────────────────
+  // Real (non-scenario) events are synced to DB balances by the server.
+  // Scenario events are hypothetical and only exist in the simulation,
+  // so we replay them here to show their impact on the projection.
+  const activeScenarios = new Set(input.activeScenarioIds);
+  const scenarioEvents = allEvents.filter(e => e.scenarioId && activeScenarios.has(e.scenarioId));
+  const pastScenarioEvents = collectPastEvents(scenarioEvents, config.startDate, input.accounts);
+  for (const pe of pastScenarioEvents) {
     const targetId = pe.accountId ?? getDefaultAccountId(input.accounts);
     switch (pe.type) {
       case 'income':
@@ -206,6 +207,7 @@ function processPeriod(
       name: event.name,
       type: event.type,
       amount: inflatedAmount,
+      date: occ.date,
       accountId: targetAccountId,
     });
   }
@@ -219,6 +221,17 @@ function processPeriod(
 
   const totalBalance = sumBalances(accountBalances);
 
+  // Exclude balances from accounts linked to goals (savings accounts)
+  const goalLinkedAccountIds = new Set(
+    input.goals.filter(g => g.linkedAccountId).map(g => g.linkedAccountId!),
+  );
+  let reservedForGoals = 0;
+  for (const [accountId, balance] of accountBalances) {
+    if (goalLinkedAccountIds.has(accountId)) {
+      reservedForGoals += balance;
+    }
+  }
+
   const committedBalance = calculateCommittedBalance(
     occurrences,
     periodDate,
@@ -227,7 +240,7 @@ function processPeriod(
     goalAmounts,
   );
 
-  const availableBalance = Math.max(0, totalBalance - committedBalance);
+  const availableBalance = Math.max(0, totalBalance - committedBalance - reservedForGoals);
 
   if (totalBalance < 0) {
     alerts.push({
@@ -421,9 +434,14 @@ function calculateCommittedBalance(
   }
 
   for (const goal of goals) {
-    const current = goalAmounts.get(goal.id) ?? goal.currentAmount;
-    const remaining = Math.max(0, goal.targetAmount - current);
-    committed += remaining;
+    // Only count goals with active monthly contributions as committed.
+    // Goals without a contribution plan are aspirational, not committed.
+    // Goals linked to a dedicated account are already separated.
+    if (goal.monthlyContribution > 0 && !goal.linkedAccountId) {
+      const current = goalAmounts.get(goal.id) ?? goal.currentAmount;
+      const remaining = Math.max(0, goal.targetAmount - current);
+      committed += remaining;
+    }
   }
 
   return committed;

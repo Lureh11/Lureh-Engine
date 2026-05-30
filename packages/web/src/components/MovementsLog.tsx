@@ -3,6 +3,7 @@ import { formatMoney, formatDateShort } from '../lib/format.js';
 
 interface Props {
   timeline: PeriodSnapshot[];
+  startingBalance: number;
   limit?: number;
 }
 
@@ -14,23 +15,33 @@ interface Movement {
   balanceAfter: number;
 }
 
-export function MovementsLog({ timeline, limit = 30 }: Props) {
-  // Extract individual event applications from the timeline
-  const movements: Movement[] = [];
+export function MovementsLog({ timeline, startingBalance, limit = 30 }: Props) {
+  // Extract individual events with their real dates
+  const rawMovements: Omit<Movement, 'balanceAfter'>[] = [];
 
   for (const snapshot of timeline) {
     if (snapshot.appliedEvents && snapshot.appliedEvents.length > 0) {
       for (const evt of snapshot.appliedEvents) {
-        movements.push({
-          date: snapshot.date,
+        rawMovements.push({
+          date: evt.date ?? snapshot.date,
           eventName: evt.name,
           type: evt.type,
           amount: evt.amount,
-          balanceAfter: snapshot.totalBalance,
         });
       }
     }
   }
+
+  // Sort by date so we can calculate running balance correctly
+  rawMovements.sort((a, b) => a.date.localeCompare(b.date));
+
+  // Calculate running balance event by event
+  let runningBalance = startingBalance;
+  const movements: Movement[] = rawMovements.map((mov) => {
+    const isPositive = mov.type === 'income' || mov.type === 'growth';
+    runningBalance += isPositive ? mov.amount : -mov.amount;
+    return { ...mov, balanceAfter: Math.round(runningBalance * 100) / 100 };
+  });
 
   const limited = movements.slice(0, limit);
 
@@ -53,13 +64,13 @@ export function MovementsLog({ timeline, limit = 30 }: Props) {
         Movimientos Proyectados
       </h2>
       <div className="max-h-80 overflow-auto">
-        <table className="w-full text-xs">
+        <table className="w-full text-xs table-fixed">
           <thead className="sticky top-0 bg-white dark:bg-slate-900">
             <tr className="text-left text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">
-              <th className="pb-2 pr-3 font-medium">Fecha</th>
-              <th className="pb-2 pr-3 font-medium">Evento</th>
-              <th className="pb-2 pr-3 text-right font-medium">Monto</th>
-              <th className="pb-2 text-right font-medium">Saldo despues</th>
+              <th className="pb-2 pr-2 font-medium w-[90px]">Fecha</th>
+              <th className="pb-2 pr-2 font-medium">Evento</th>
+              <th className="pb-2 pr-2 text-right font-medium w-[110px]">Monto</th>
+              <th className="pb-2 text-right font-medium w-[120px]">Saldo</th>
             </tr>
           </thead>
           <tbody>
@@ -70,16 +81,16 @@ export function MovementsLog({ timeline, limit = 30 }: Props) {
                   key={`${mov.date}-${mov.eventName}-${i}`}
                   className="border-b border-slate-50 last:border-0 dark:border-slate-800/50"
                 >
-                  <td className="py-1.5 pr-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                  <td className="py-1.5 pr-2 text-slate-500 dark:text-slate-400 whitespace-nowrap">
                     {formatDateShort(mov.date)}
                   </td>
-                  <td className="py-1.5 pr-3">
+                  <td className="py-1.5 pr-2 truncate">
                     <div className="flex items-center gap-1.5">
-                      <span className={`inline-block h-1.5 w-1.5 rounded-full ${typeColor(mov.type)}`} />
-                      <span className="text-slate-700 dark:text-slate-300">{mov.eventName}</span>
+                      <span className={`flex-shrink-0 inline-block h-1.5 w-1.5 rounded-full ${typeColor(mov.type)}`} />
+                      <span className="text-slate-700 dark:text-slate-300 truncate">{mov.eventName}</span>
                     </div>
                   </td>
-                  <td className={`py-1.5 pr-3 text-right font-medium whitespace-nowrap ${
+                  <td className={`py-1.5 pr-2 text-right font-medium whitespace-nowrap ${
                     isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'
                   }`}>
                     {isPositive ? '+' : '-'}{formatMoney(mov.amount)}

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { randomUUID } from 'crypto';
-import { getAllGoals, createGoal, deleteGoal } from '../db/database.js';
+import { getAllGoals, createGoal, updateGoal, deleteGoal } from '../db/database.js';
 import type { FinancialGoal } from '@lureh/engine';
 
 export const goalsRouter = Router();
@@ -24,6 +24,12 @@ goalsRouter.post('/', (req, res) => {
     updatedAt: now,
   };
   res.status(201).json(createGoal(goal));
+});
+
+goalsRouter.put('/:id', (req, res) => {
+  const updated = updateGoal(req.params.id, req.body);
+  if (!updated) return res.status(404).json({ error: 'Goal not found' });
+  res.json(updated);
 });
 
 goalsRouter.delete('/:id', (req, res) => {

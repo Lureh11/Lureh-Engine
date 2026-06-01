@@ -104,13 +104,14 @@ export function DashboardPage({ onNavigate }: DashboardProps) {
       {firstSnapshot && (
         <AvailableBalance
           total={firstSnapshot.totalBalance}
+          reservedForGoals={firstSnapshot.reservedForGoals}
           committed={firstSnapshot.committedBalance}
           available={firstSnapshot.availableBalance}
         />
       )}
 
       <div className="mt-6">
-        <BalanceCards summary={result.summary} />
+        <BalanceCards summary={result.summary} reservedForGoals={firstSnapshot?.reservedForGoals ?? 0} />
       </div>
 
       <div className="mt-6 flex items-center gap-4 flex-wrap">

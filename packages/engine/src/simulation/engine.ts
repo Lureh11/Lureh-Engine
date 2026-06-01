@@ -284,6 +284,7 @@ function processPeriod(
   return {
     date: periodDate,
     totalBalance: round2(totalBalance),
+    reservedForGoals: round2(reservedForGoals),
     committedBalance: round2(committedBalance),
     availableBalance: round2(availableBalance),
     periodIncome: round2(periodIncome),

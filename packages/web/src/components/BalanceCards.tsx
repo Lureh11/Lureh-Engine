@@ -3,15 +3,17 @@ import { formatMoney, riskColor, riskBg } from '../lib/format.js';
 
 interface Props {
   summary: SimulationSummary;
+  reservedForGoals?: number;
 }
 
-export function BalanceCards({ summary }: Props) {
+export function BalanceCards({ summary, reservedForGoals = 0 }: Props) {
+  const liquidBalance = summary.currentTotalBalance - reservedForGoals;
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <Card
-        label="Saldo Total"
-        value={formatMoney(summary.currentTotalBalance)}
-        sub="Dinero líquido existente"
+        label="Saldo Liquido"
+        value={formatMoney(liquidBalance)}
+        sub="Dinero disponible (sin ahorro metas)"
         color="text-lureh-600 dark:text-lureh-400"
         bg="bg-lureh-50 border-lureh-200 dark:bg-lureh-950 dark:border-lureh-800"
       />

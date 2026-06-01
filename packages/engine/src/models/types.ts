@@ -232,6 +232,8 @@ export interface GoalProgress {
 export interface PeriodSnapshot {
   date: string;
   totalBalance: number;
+  /** Balance from accounts linked to goals — excluded from available */
+  reservedForGoals: number;
   committedBalance: number;
   availableBalance: number;
   periodIncome: number;

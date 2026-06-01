@@ -2,13 +2,15 @@ import { formatMoney } from '../lib/format.js';
 
 interface Props {
   total: number;
+  reservedForGoals: number;
   committed: number;
   available: number;
 }
 
-export function AvailableBalance({ total, committed, available }: Props) {
-  const pctAvailable = total > 0 ? (available / total) * 100 : 0;
-  const pctCommitted = total > 0 ? (committed / total) * 100 : 0;
+export function AvailableBalance({ total, reservedForGoals, committed, available }: Props) {
+  const liquid = total - reservedForGoals;
+  const pctAvailable = liquid > 0 ? (available / liquid) * 100 : 0;
+  const pctCommitted = liquid > 0 ? (committed / liquid) * 100 : 0;
 
   return (
     <div className="rounded-2xl border border-lureh-200 bg-gradient-to-br from-lureh-50 to-white p-6 dark:border-lureh-800 dark:from-lureh-950 dark:to-slate-900">
@@ -20,8 +22,13 @@ export function AvailableBalance({ total, committed, available }: Props) {
           </p>
         </div>
         <div className="text-right">
-          <p className="text-sm text-slate-400 dark:text-slate-500">Saldo Total</p>
-          <p className="text-lg font-semibold text-slate-600 dark:text-slate-300">{formatMoney(total)}</p>
+          <p className="text-sm text-slate-400 dark:text-slate-500">Saldo Liquido</p>
+          <p className="text-lg font-semibold text-slate-600 dark:text-slate-300">{formatMoney(liquid)}</p>
+          {reservedForGoals > 0 && (
+            <p className="text-[11px] text-slate-400 dark:text-slate-500">
+              + {formatMoney(reservedForGoals)} en ahorro metas
+            </p>
+          )}
         </div>
       </div>
 

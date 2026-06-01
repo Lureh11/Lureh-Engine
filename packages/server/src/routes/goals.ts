@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { randomUUID } from 'crypto';
-import { getAllGoals, createGoal, updateGoal, deleteGoal } from '../db/database.js';
+import { getAllGoals, createGoal, updateGoal, deleteGoal, getGoalById, updateAccount } from '../db/database.js';
 import type { FinancialGoal } from '@lureh/engine';
 
 export const goalsRouter = Router();
@@ -29,6 +29,12 @@ goalsRouter.post('/', (req, res) => {
 goalsRouter.put('/:id', (req, res) => {
   const updated = updateGoal(req.params.id, req.body);
   if (!updated) return res.status(404).json({ error: 'Goal not found' });
+
+  // Sync: if this goal is linked to an account, update the account's balance
+  if (updated.linkedAccountId && req.body.currentAmount !== undefined) {
+    updateAccount(updated.linkedAccountId, { balance: updated.currentAmount });
+  }
+
   res.json(updated);
 });
 

@@ -6,6 +6,8 @@ import {
   createAccount,
   updateAccount,
   deleteAccount,
+  getAllGoals,
+  updateGoal,
 } from '../db/database.js';
 import type { Account } from '@lureh/engine';
 
@@ -40,6 +42,15 @@ accountsRouter.post('/', (req, res) => {
 accountsRouter.put('/:id', (req, res) => {
   const updated = updateAccount(req.params.id, req.body);
   if (!updated) return res.status(404).json({ error: 'Account not found' });
+
+  // Sync: if this account is linked to a goal, update the goal's currentAmount
+  const goals = getAllGoals();
+  for (const goal of goals) {
+    if (goal.linkedAccountId === req.params.id) {
+      updateGoal(goal.id, { currentAmount: updated.balance });
+    }
+  }
+
   res.json(updated);
 });
 
